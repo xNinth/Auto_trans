@@ -33,16 +33,62 @@ body {
 /* 表格样式 */
 .table {
     color: #fff;
+    user-select: text; /* 允许选择文本 */
 }
 
 .table thead th {
     border-bottom: 2px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.1);
+    user-select: none; /* 表头不可选择 */
+    cursor: pointer; /* 添加指针样式 */
+    transition: all 0.2s;
+    position: relative;
+    padding: 12px 8px;
+}
+
+.table thead th:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.table thead th::after {
+    content: '↕';
+    position: absolute;
+    right: 8px;
+    opacity: 0.5;
+    font-size: 12px;
+}
+
+.table thead th:hover::after {
+    opacity: 1;
 }
 
 .table td {
     border-color: rgba(255, 255, 255, 0.1);
     vertical-align: middle;
+    padding: 8px;
+    position: relative;
+}
+
+/* 可选择单元格样式 */
+.table td.selectable {
+    cursor: text;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.table td.selectable:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.table td.selectable:focus {
+    outline: 2px solid rgba(255, 255, 255, 0.3);
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* 选中文本样式 */
+.table td.selectable::selection {
+    background-color: rgba(255, 255, 255, 0.3);
+    color: #fff;
 }
 
 /* 文本框样式 */

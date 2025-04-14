@@ -8,10 +8,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const addRowBtn = document.getElementById('addRow');
     const translateBtn = document.getElementById('translate');
     const loadingOverlay = document.querySelector('.loading-overlay');
+    const copyAllResultsBtn = document.getElementById('copyAllResults');
+    const clearAllBtn = document.getElementById('clearAll');
 
     // 绑定事件监听器
     addRowBtn.addEventListener('click', addNewRow);
     translateBtn.addEventListener('click', startTranslation);
+    copyAllResultsBtn.addEventListener('click', copyAllResults);
+    clearAllBtn.addEventListener('click', clearAll);
     setupDeleteRowHandlers();
     setupPasteHandler();
 
@@ -264,24 +268,144 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 更新结果表格
+    // 更新结果表格样式
     function updateResultTable(translations) {
         const tbody = resultTable.querySelector('tbody');
         tbody.innerHTML = '';
-        
+
         translations.forEach(translation => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${translation.zh_CN}</td>
-                <td>${translation.en_US}</td>
-                <td>${translation.AR}</td>
-                <td>${translation.TR}</td>
-                <td>${translation.pt_BR}</td>
-                <td>${translation.es_MX}</td>
-                <td>${translation.TC}</td>
+                <td class="selectable" data-lang="zh_CN">
+                    <span class="cell-content">${translation.zh_CN}</span>
+                </td>
+                <td class="selectable" data-lang="en_US">
+                    <span class="cell-content">${translation.en_US}</span>
+                </td>
+                <td class="selectable" data-lang="AR">
+                    <span class="cell-content">${translation.AR}</span>
+                </td>
+                <td class="selectable" data-lang="TR">
+                    <span class="cell-content">${translation.TR}</span>
+                </td>
+                <td class="selectable" data-lang="pt_BR">
+                    <span class="cell-content">${translation.pt_BR}</span>
+                </td>
+                <td class="selectable" data-lang="es_MX">
+                    <span class="cell-content">${translation.es_MX}</span>
+                </td>
+                <td class="selectable" data-lang="TC">
+                    <span class="cell-content">${translation.TC}</span>
+                </td>
             `;
             tbody.appendChild(row);
         });
+
+        // 设置单元格复制功能
+        setupCellCopyHandlers();
+    }
+
+    // 设置单元格复制功能
+    function setupCellCopyHandlers() {
+        // 设置列选择功能
+        document.querySelectorAll('thead th').forEach((th, index) => {
+            th.addEventListener('click', function() {
+                const rows = Array.from(resultTable.querySelectorAll('tbody tr'));
+                const lang = this.textContent.trim(); // 获取表头的语言代码
+                const columnContent = rows.map(row => {
+                    const cell = row.querySelector(`td[data-lang="${lang}"] .cell-content`);
+                    return cell ? cell.textContent : '';
+                }).join('\n');
+                
+                navigator.clipboard.writeText(columnContent)
+                    .then(() => {
+                        showToast('已复制整列内容', 'success');
+                    })
+                    .catch(err => {
+                        console.error('复制失败:', err);
+                        showToast('复制失败，请重试', 'error');
+                    });
+            });
+        });
+
+        // 设置单元格点击事件
+        document.querySelectorAll('.selectable').forEach(cell => {
+            cell.addEventListener('click', function() {
+                // 移除其他单元格的焦点
+                document.querySelectorAll('.selectable').forEach(c => {
+                    if (c !== this) {
+                        c.classList.remove('focused');
+                    }
+                });
+                
+                // 添加当前单元格的焦点
+                this.classList.add('focused');
+                
+                // 选中单元格内容
+                const range = document.createRange();
+                const selection = window.getSelection();
+                range.selectNodeContents(this.querySelector('.cell-content'));
+                selection.removeAllRanges();
+                selection.addRange(range);
+            });
+        });
+    }
+
+    // 复制所有结果
+    function copyAllResults() {
+        const rows = Array.from(resultTable.querySelectorAll('tbody tr'));
+        if (rows.length === 0) {
+            showToast('没有可复制的翻译结果', 'warning');
+            return;
+        }
+
+        let csvContent = '';
+
+        rows.forEach(row => {
+            const cells = Array.from(row.querySelectorAll('.cell-content'));
+            const rowContent = cells.map(cell => cell.textContent).join('\t');
+            csvContent += rowContent + '\n';
+        });
+
+        navigator.clipboard.writeText(csvContent)
+            .then(() => {
+                showToast('已复制所有翻译结果', 'success');
+            })
+            .catch(err => {
+                console.error('复制失败:', err);
+                showToast('复制失败，请重试', 'error');
+            });
+    }
+
+    // 清空所有行
+    function clearAll() {
+        const inputTbody = inputTable.querySelector('tbody');
+        const resultTbody = resultTable.querySelector('tbody');
+        
+        // 清空输入表格，只保留一行
+        inputTbody.innerHTML = `
+            <tr>
+                <td>
+                    <textarea class="form-control description" rows="2" placeholder="请输入说明..."></textarea>
+                </td>
+                <td>
+                    <textarea class="form-control original-text" rows="2" placeholder="请输入原文..."></textarea>
+                </td>
+                <td>
+                    <button class="btn btn-danger btn-sm delete-row">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        
+        // 清空结果表格
+        resultTbody.innerHTML = '';
+        
+        // 重新设置删除按钮的事件处理
+        setupDeleteRowHandlers();
+        
+        showToast('已清空所有内容', 'success');
     }
 
     // 显示加载动画
