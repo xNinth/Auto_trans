@@ -1,6 +1,12 @@
 // 从配置文件导入API配置
 import config from './config.js';
 
+// 语言顺序配置
+const languageOrders = {
+    normal: ['zh_CN', 'en_US', 'AR', 'TR', 'pt_BR', 'es_MX', 'TC'],
+    backend: ['zh_CN', 'TC', 'en_US', 'ar', 'tr', 'es_MX', 'pt_BR']
+};
+
 // DOM元素
 document.addEventListener('DOMContentLoaded', () => {
     const inputTable = document.getElementById('inputTable');
@@ -10,12 +16,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingOverlay = document.querySelector('.loading-overlay');
     const copyAllResultsBtn = document.getElementById('copyAllResults');
     const clearAllBtn = document.getElementById('clearAll');
+    const sortToggle = document.getElementById('sortToggle');
+
+    // 初始化开关标签文本
+    const sortLabel = document.querySelector('label[for="sortToggle"]');
+    sortLabel.textContent = '切换为后台';
 
     // 绑定事件监听器
     addRowBtn.addEventListener('click', addNewRow);
     translateBtn.addEventListener('click', startTranslation);
     copyAllResultsBtn.addEventListener('click', copyAllResults);
     clearAllBtn.addEventListener('click', clearAll);
+    sortToggle.addEventListener('change', handleSortToggle);
     setupDeleteRowHandlers();
     setupPasteHandler();
 
@@ -99,13 +111,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 重新设置删除按钮的事件处理
             setupDeleteRowHandlers();
-
-            // 自动调整所有文本框的高度
-            document.querySelectorAll('.original-text').forEach(textarea => {
-                textarea.style.height = 'auto';
-                textarea.style.height = textarea.scrollHeight + 'px';
-            });
         });
+    }
+
+    // 处理排序切换
+    function handleSortToggle() {
+        const isBackendSort = sortToggle.checked;
+        const currentOrder = isBackendSort ? languageOrders.backend : languageOrders.normal;
+        
+        // 更新开关标签文本
+        sortLabel.textContent = isBackendSort ? '切换为正常' : '切换为后台';
+        
+        // 更新表头顺序
+        const thead = resultTable.querySelector('thead tr');
+        thead.innerHTML = '';
+        currentOrder.forEach(lang => {
+            const th = document.createElement('th');
+            th.textContent = lang.toUpperCase();
+            thead.appendChild(th);
+        });
+
+        // 重新排序现有数据
+        const tbody = resultTable.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        rows.forEach(row => {
+            const cells = Array.from(row.querySelectorAll('td'));
+            const newRow = document.createElement('tr');
+            
+            currentOrder.forEach(lang => {
+                const cell = cells.find(cell => cell.dataset.lang.toLowerCase() === lang.toLowerCase());
+                if (cell) {
+                    newRow.appendChild(cell.cloneNode(true));
+                }
+            });
+            
+            row.replaceWith(newRow);
+        });
+
+        // 重新设置单元格复制功能
+        setupCellCopyHandlers();
     }
 
     // 开始翻译
@@ -268,36 +312,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 更新结果表格样式
+    // 更新结果表格
     function updateResultTable(translations) {
         const tbody = resultTable.querySelector('tbody');
         tbody.innerHTML = '';
 
-        translations.forEach(translation => {
+        // 获取当前排序顺序
+        const currentOrder = sortToggle.checked ? languageOrders.backend : languageOrders.normal;
+
+        // 获取输入表格的所有行
+        const inputRows = Array.from(inputTable.querySelectorAll('tbody tr'));
+        
+        // 确保翻译结果与输入行一一对应
+        translations.forEach((translation, index) => {
             const row = document.createElement('tr');
-            row.innerHTML = `
-                <td class="selectable" data-lang="zh_CN">
-                    <span class="cell-content">${translation.zh_CN}</span>
-                </td>
-                <td class="selectable" data-lang="en_US">
-                    <span class="cell-content">${translation.en_US}</span>
-                </td>
-                <td class="selectable" data-lang="AR">
-                    <span class="cell-content">${translation.AR}</span>
-                </td>
-                <td class="selectable" data-lang="TR">
-                    <span class="cell-content">${translation.TR}</span>
-                </td>
-                <td class="selectable" data-lang="pt_BR">
-                    <span class="cell-content">${translation.pt_BR}</span>
-                </td>
-                <td class="selectable" data-lang="es_MX">
-                    <span class="cell-content">${translation.es_MX}</span>
-                </td>
-                <td class="selectable" data-lang="TC">
-                    <span class="cell-content">${translation.TC}</span>
-                </td>
-            `;
+            
+            currentOrder.forEach(lang => {
+                const cell = document.createElement('td');
+                cell.className = 'selectable';
+                cell.dataset.lang = lang;
+                
+                const span = document.createElement('span');
+                span.className = 'cell-content';
+                span.textContent = translation[lang] || '';
+                
+                cell.appendChild(span);
+                row.appendChild(cell);
+            });
+            
             tbody.appendChild(row);
         });
 
