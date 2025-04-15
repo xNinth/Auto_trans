@@ -180,6 +180,11 @@ document.addEventListener('DOMContentLoaded', () => {
             showLoading();
             isTranslationCancelled = false; // 重置取消标志
             
+            // 更新当前使用的模型名称
+            const currentModelName = document.getElementById('currentModelName');
+            const selectedModel = modelSelect.value;
+            currentModelName.textContent = selectedModel === 'deepseek' ? 'Deepseek-V3' : 'Grok-3';
+            
             // 记录开始时间和总行数
             const startTime = new Date();
             const rows = Array.from(inputTable.querySelectorAll('tbody tr'));
