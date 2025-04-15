@@ -7,6 +7,9 @@ const languageOrders = {
     backend: ['zh_CN', 'TC', 'en_US', 'ar', 'tr', 'es_MX', 'pt_BR']
 };
 
+// 添加字符限制常量
+const MAX_CHARS_PER_BATCH = 300;
+
 // DOM元素
 document.addEventListener('DOMContentLoaded', () => {
     const inputTable = document.getElementById('inputTable');
@@ -192,13 +195,59 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 调用翻译API
+    // 修改 translateText 函数
     async function translateText(description, originalText) {
         try {
-            console.log('Sending translation request...'); // 调试日志
+            console.log('开始处理翻译请求...');
             
-            const modelConfig = getCurrentModelConfig();
-            const systemPrompt = `你是一位专业的翻译专家，精通多种语言。请将以下文本翻译成指定的语言。
+            // 按行分割文本
+            const lines = originalText.split('\n');
+            let currentBatch = [];
+            let currentCharCount = 0;
+            let batches = [];
+            
+            // 按行分组，确保每行完整
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const lineLength = line.length;
+                
+                // 如果当前行加入后超过限制，且当前批次不为空，则保存当前批次
+                if (currentCharCount + lineLength > MAX_CHARS_PER_BATCH && currentBatch.length > 0) {
+                    batches.push(currentBatch.join('\n'));
+                    currentBatch = [];
+                    currentCharCount = 0;
+                }
+                
+                // 添加当前行到批次
+                currentBatch.push(line);
+                currentCharCount += lineLength;
+                
+                // 如果是最后一行，保存当前批次
+                if (i === lines.length - 1) {
+                    batches.push(currentBatch.join('\n'));
+                }
+            }
+            
+            console.log(`文本被分成 ${batches.length} 个批次进行翻译`);
+            
+            // 存储所有批次的翻译结果
+            let allTranslations = {
+                zh_CN: [],
+                en_US: [],
+                AR: [],
+                TR: [],
+                pt_BR: [],
+                es_MX: [],
+                TC: []
+            };
+            
+            // 逐批翻译
+            for (let i = 0; i < batches.length; i++) {
+                const batch = batches[i];
+                console.log(`正在翻译第 ${i + 1}/${batches.length} 批次，字符数: ${batch.length}`);
+                
+                const modelConfig = getCurrentModelConfig();
+                const systemPrompt = `你是一位专业的翻译专家，精通多种语言。请将以下文本翻译成指定的语言。
 
 需要翻译的语言：
 - zh_CN（简体中文）
@@ -228,96 +277,88 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 }`;
 
-            const userPrompt = `原文：${originalText}
+                const userPrompt = `原文：${batch}
 场景说明：${description}
 
 请按照上述格式返回翻译结果。`;
 
-            const response = await fetch(modelConfig.API_ENDPOINT, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${modelConfig.API_KEY}`
-                },
-                body: JSON.stringify({
-                    messages: [
-                        {
-                            role: "system",
-                            content: systemPrompt
-                        },
-                        {
-                            role: "user",
-                            content: userPrompt
-                        }
-                    ],
-                    model: modelConfig.MODEL,
-                    stream: false,
-                    temperature: 0.3 // 降低温度以获得更稳定的输出
-                })
-            });
+                const response = await fetch(modelConfig.API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${modelConfig.API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            {
+                                role: "system",
+                                content: systemPrompt
+                            },
+                            {
+                                role: "user",
+                                content: userPrompt
+                            }
+                        ],
+                        model: modelConfig.MODEL,
+                        stream: false,
+                        temperature: 0.3
+                    })
+                });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('API Error Response:', errorText);
-                throw new Error(`API request failed: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log('API Response:', data); // 调试日志
-            
-            // 初始化默认翻译结果
-            const translations = {
-                zh_CN: originalText, // 保持原文
-                en_US: '',
-                AR: '',
-                TR: '',
-                pt_BR: '',
-                es_MX: '',
-                TC: ''
-            };
-
-            try {
-                // 解析API返回的内容
-                const content = data.choices[0].message.content;
-                let parsedContent;
-
-                // 如果返回的是字符串，尝试解析JSON
-                if (typeof content === 'string') {
-                    try {
-                        // 尝试找到JSON部分
-                        const jsonMatch = content.match(/\{[\s\S]*\}/);
-                        if (jsonMatch) {
-                            parsedContent = JSON.parse(jsonMatch[0]);
-                        }
-                    } catch (parseError) {
-                        console.error('JSON parsing error:', parseError);
-                    }
-                } else {
-                    parsedContent = content;
+                if (!response.ok) {
+                    throw new Error(`翻译请求失败: ${response.status}`);
                 }
 
-                // 如果成功解析到translations对象，更新翻译结果
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+                
+                // 解析翻译结果
+                let parsedContent;
+                try {
+                    const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        parsedContent = JSON.parse(jsonMatch[0]);
+                    }
+                } catch (parseError) {
+                    console.error('JSON解析错误:', parseError);
+                    throw new Error('翻译结果格式不正确');
+                }
+
+                // 合并翻译结果
                 if (parsedContent && parsedContent.translations) {
-                    Object.keys(translations).forEach(lang => {
+                    Object.keys(allTranslations).forEach(lang => {
                         if (parsedContent.translations[lang]) {
-                            translations[lang] = parsedContent.translations[lang];
+                            allTranslations[lang].push(parsedContent.translations[lang]);
                         }
                     });
-                } else {
-                    console.error('Invalid response format:', content);
-                    showToast('翻译结果格式不正确，请重试', 'error');
                 }
-            } catch (error) {
-                console.error('Error processing translation result:', error);
-                showToast('处理翻译结果时出错，请重试', 'error');
+                
+                // 更新进度
+                const progress = Math.round(((i + 1) / batches.length) * 100);
+                updateProgress(progress);
             }
             
-            return translations;
+            // 合并所有批次的翻译结果
+            const finalTranslations = {};
+            Object.keys(allTranslations).forEach(lang => {
+                finalTranslations[lang] = allTranslations[lang].join('\n');
+            });
             
+            return finalTranslations;
         } catch (error) {
-            console.error('Translation API Error:', error);
-            showToast('翻译服务出错，请重试', 'error');
+            console.error('翻译出错:', error);
             throw error;
+        }
+    }
+
+    // 添加进度更新函数
+    function updateProgress(progress) {
+        const progressBar = document.querySelector('.progress-bar');
+        const progressText = document.querySelector('.progress-text');
+        
+        if (progressBar && progressText) {
+            progressBar.style.width = `${progress}%`;
+            progressText.textContent = `翻译进度: ${progress}%`;
         }
     }
 
