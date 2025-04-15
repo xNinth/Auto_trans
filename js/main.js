@@ -180,6 +180,14 @@ document.addEventListener('DOMContentLoaded', () => {
             showLoading();
             isTranslationCancelled = false; // 重置取消标志
             
+            // 重置进度条
+            const progressBar = document.querySelector('.progress-bar');
+            const progressText = document.querySelector('.progress-text');
+            if (progressBar && progressText) {
+                progressBar.style.width = '0%';
+                progressText.textContent = '翻译进度: 0%';
+            }
+            
             // 更新当前使用的模型名称
             const currentModelName = document.getElementById('currentModelName');
             const selectedModel = modelSelect.value;
