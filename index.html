@@ -22,7 +22,14 @@
                 <div class="card glass-card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">输入区域</h5>
-                        <div>
+                        <div class="d-flex align-items-center">
+                            <span class="text-white me-2">模型：</span>
+                            <div class="model-select-container me-3">
+                                <select class="form-select form-select-sm" id="modelSelect">
+                                    <option value="deepseek">Deepseek-V3</option>
+                                    <option value="grok">Grok-3</option>
+                                </select>
+                            </div>
                             <button class="btn btn-primary btn-sm me-2" id="addRow">
                                 <i class="bi bi-plus-lg"></i> 添加行
                             </button>

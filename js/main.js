@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const copyAllResultsBtn = document.getElementById('copyAllResults');
     const clearAllBtn = document.getElementById('clearAll');
     const sortToggle = document.getElementById('sortToggle');
+    const modelSelect = document.getElementById('modelSelect');
 
     // 初始化开关标签文本
     const sortLabel = document.querySelector('label[for="sortToggle"]');
@@ -30,6 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
     sortToggle.addEventListener('change', handleSortToggle);
     setupDeleteRowHandlers();
     setupPasteHandler();
+
+    // 获取当前选择的模型配置
+    function getCurrentModelConfig() {
+        const selectedModel = modelSelect.value;
+        return config.models[selectedModel];
+    }
 
     // 添加新行
     function addNewRow() {
@@ -189,7 +196,9 @@ document.addEventListener('DOMContentLoaded', () => {
     async function translateText(description, originalText) {
         try {
             console.log('Sending translation request...'); // 调试日志
-            const systemPrompt = `你是一个专业的多语言翻译助手。请将文本翻译成多种语言，并以固定的JSON格式返回。
+            
+            const modelConfig = getCurrentModelConfig();
+            const systemPrompt = `你是一位专业的翻译专家，精通多种语言。请将以下文本翻译成指定的语言。
 
 需要翻译的语言：
 - zh_CN（简体中文）
@@ -224,11 +233,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 请按照上述格式返回翻译结果。`;
 
-            const response = await fetch(config.API_ENDPOINT, {
+            const response = await fetch(modelConfig.API_ENDPOINT, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${config.API_KEY}`
+                    'Authorization': `Bearer ${modelConfig.API_KEY}`
                 },
                 body: JSON.stringify({
                     messages: [
@@ -241,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             content: userPrompt
                         }
                     ],
-                    model: config.MODEL,
+                    model: modelConfig.MODEL,
                     stream: false,
                     temperature: 0.3 // 降低温度以获得更稳定的输出
                 })
