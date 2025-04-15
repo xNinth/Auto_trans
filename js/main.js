@@ -167,9 +167,15 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             showLoading();
             
-            // 获取所有输入行
+            // 记录开始时间和总行数
+            const startTime = new Date();
             const rows = Array.from(inputTable.querySelectorAll('tbody tr'));
+            const totalRows = rows.length;
+            console.log(`[翻译日志] 开始时间: ${startTime.toLocaleString()}`);
+            console.log(`[翻译日志] 总行数: ${totalRows}`);
+            
             const translations = [];
+            let currentRow = 0;
             
             // 处理每一行
             for (const row of rows) {
@@ -179,9 +185,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!originalText) continue;
                 
                 // 调用API进行翻译
-                const result = await translateText(description, originalText);
+                const result = await translateText(description, originalText, currentRow, totalRows);
                 translations.push(result);
+                currentRow++;
+                
+                // 更新总体进度
+                const overallProgress = Math.round((currentRow / totalRows) * 100);
+                updateProgress(overallProgress);
             }
+            
+            // 记录完成时间
+            const endTime = new Date();
+            const duration = (endTime - startTime) / 1000;
+            console.log(`[翻译日志] 完成时间: ${endTime.toLocaleString()}`);
+            console.log(`[翻译日志] 总耗时: ${duration}秒`);
             
             // 更新结果表格
             updateResultTable(translations);
@@ -196,9 +213,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 修改 translateText 函数
-    async function translateText(description, originalText) {
+    async function translateText(description, originalText, currentRow, totalRows) {
         try {
-            console.log('开始处理翻译请求...');
+            console.log(`[翻译日志] 开始处理第 ${currentRow + 1}/${totalRows} 行...`);
             
             // 按行分割文本
             const lines = originalText.split('\n');
@@ -228,7 +245,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            console.log(`文本被分成 ${batches.length} 个批次进行翻译`);
+            console.log(`[翻译日志] 第 ${currentRow + 1} 行被分成 ${batches.length} 个批次进行翻译`);
+            console.log(`[翻译日志] 第 ${currentRow + 1} 行总字符数: ${originalText.length}`);
             
             // 存储所有批次的翻译结果
             let allTranslations = {
@@ -244,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 逐批翻译
             for (let i = 0; i < batches.length; i++) {
                 const batch = batches[i];
-                console.log(`正在翻译第 ${i + 1}/${batches.length} 批次，字符数: ${batch.length}`);
+                console.log(`[翻译日志] 正在翻译第 ${currentRow + 1} 行的第 ${i + 1}/${batches.length} 批次，字符数: ${batch.length}`);
                 
                 const modelConfig = getCurrentModelConfig();
                 const systemPrompt = `你是一位专业的翻译专家，精通多种语言。请将以下文本翻译成指定的语言。
@@ -333,9 +351,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
                 
-                // 更新进度
-                const progress = Math.round(((i + 1) / batches.length) * 100);
-                updateProgress(progress);
+                // 更新当前行的进度
+                const rowProgress = Math.round(((i + 1) / batches.length) * 100);
+                console.log(`[翻译日志] 第 ${currentRow + 1} 行进度: ${rowProgress}%`);
             }
             
             // 合并所有批次的翻译结果
@@ -359,6 +377,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (progressBar && progressText) {
             progressBar.style.width = `${progress}%`;
             progressText.textContent = `翻译进度: ${progress}%`;
+            
+            // 当进度达到100%时，添加完成动画
+            if (progress === 100) {
+                progressBar.classList.add('progress-complete');
+                setTimeout(() => {
+                    progressBar.classList.remove('progress-complete');
+                }, 500);
+            }
         }
     }
 
