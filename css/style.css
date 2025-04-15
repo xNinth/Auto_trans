@@ -145,8 +145,9 @@ body {
     backdrop-filter: blur(5px);
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     z-index: 9999;
+    padding-top: 220px;
 }
 
 .loading-content {
@@ -154,11 +155,20 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 220px;
 }
 
 .progress-container {
     width: 300px;
     text-align: center;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    border-radius: 8px;
 }
 
 .progress {
@@ -194,6 +204,24 @@ body {
     color: white;
     font-size: 14px;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+#cancelTranslation {
+    background: rgba(220, 53, 69, 0.8);
+    border: none;
+    padding: 8px 20px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+#cancelTranslation:hover {
+    background: rgba(220, 53, 69, 1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+#cancelTranslation:active {
+    transform: translateY(0);
 }
 
 /* 响应式调整 */

@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearAllBtn = document.getElementById('clearAll');
     const sortToggle = document.getElementById('sortToggle');
     const modelSelect = document.getElementById('modelSelect');
+    const cancelTranslationBtn = document.getElementById('cancelTranslation');
 
     // 初始化开关标签文本
     const sortLabel = document.querySelector('label[for="sortToggle"]');
@@ -34,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sortToggle.addEventListener('change', handleSortToggle);
     setupDeleteRowHandlers();
     setupPasteHandler();
+    cancelTranslationBtn.addEventListener('click', cancelTranslation);
 
     // 获取当前选择的模型配置
     function getCurrentModelConfig() {
@@ -162,10 +164,21 @@ document.addEventListener('DOMContentLoaded', () => {
         setupCellCopyHandlers();
     }
 
+    // 添加取消翻译标志
+    let isTranslationCancelled = false;
+
+    // 取消翻译函数
+    function cancelTranslation() {
+        isTranslationCancelled = true;
+        hideLoading();
+        showToast('翻译已取消', 'warning');
+    }
+
     // 开始翻译
     async function startTranslation() {
         try {
             showLoading();
+            isTranslationCancelled = false; // 重置取消标志
             
             // 记录开始时间和总行数
             const startTime = new Date();
@@ -179,6 +192,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 处理每一行
             for (const row of rows) {
+                // 检查是否取消
+                if (isTranslationCancelled) {
+                    break;
+                }
+
                 const description = row.querySelector('.description').value.trim();
                 const originalText = row.querySelector('.original-text').value.trim();
                 
@@ -194,19 +212,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateProgress(overallProgress);
             }
             
-            // 记录完成时间
-            const endTime = new Date();
-            const duration = (endTime - startTime) / 1000;
-            console.log(`[翻译日志] 完成时间: ${endTime.toLocaleString()}`);
-            console.log(`[翻译日志] 总耗时: ${duration}秒`);
-            
-            // 更新结果表格
-            updateResultTable(translations);
-            showToast('翻译完成！', 'success');
+            // 如果翻译被取消，不显示完成提示
+            if (!isTranslationCancelled) {
+                // 记录完成时间
+                const endTime = new Date();
+                const duration = (endTime - startTime) / 1000;
+                console.log(`[翻译日志] 完成时间: ${endTime.toLocaleString()}`);
+                console.log(`[翻译日志] 总耗时: ${duration}秒`);
+                
+                // 更新结果表格
+                updateResultTable(translations);
+                showToast('翻译完成！', 'success');
+            }
             
         } catch (error) {
-            console.error('Translation error:', error);
-            showToast('翻译过程中发生错误，请重试。', 'error');
+            if (!isTranslationCancelled) {
+                console.error('Translation error:', error);
+                showToast('翻译过程中发生错误，请重试。', 'error');
+            }
         } finally {
             hideLoading();
         }
