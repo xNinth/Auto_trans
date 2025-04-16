@@ -1,7 +1,7 @@
 // API配置
 const config = {
     // API基础URL
-    API_BASE_URL: 'https://api.autotrans.run',
+    API_BASE_URL: 'https://auto-trans2-backend.vercel.app',
     
     // API端点
     ENDPOINTS: {
