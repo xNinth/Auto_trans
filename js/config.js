@@ -1,7 +1,7 @@
 // API配置
 const config = {
     // API基础URL
-    API_BASE_URL: 'http://localhost:5000',
+    API_BASE_URL: 'https://api.autotrans.run',
     
     // API端点
     ENDPOINTS: {
