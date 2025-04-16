@@ -23,6 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const modelSelect = document.getElementById('modelSelect');
     const cancelTranslationBtn = document.getElementById('cancelTranslation');
 
+    // 确保加载动画初始状态为隐藏
+    loadingOverlay.classList.add('d-none');
+
     // 初始化开关标签文本
     const sortLabel = document.querySelector('label[for="sortToggle"]');
     sortLabel.textContent = '切换为后台';
