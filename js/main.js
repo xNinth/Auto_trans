@@ -23,9 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const modelSelect = document.getElementById('modelSelect');
     const cancelTranslationBtn = document.getElementById('cancelTranslation');
 
-    // 确保加载动画初始状态为隐藏
-    loadingOverlay.classList.add('d-none');
-
     // 初始化开关标签文本
     const sortLabel = document.querySelector('label[for="sortToggle"]');
     sortLabel.textContent = '切换为后台';
@@ -221,10 +218,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // 添加进度更新函数
+    function updateProgress(progress) {
+        const progressBar = document.querySelector('.progress-bar');
+        const progressText = document.querySelector('.progress-text');
+        
+        if (progressBar && progressText) {
+            progressBar.style.width = `${progress}%`;
+            progressText.textContent = `翻译进度: ${Math.round(progress)}%`;
+            
+            // 当进度达到100%时，添加完成动画
+            if (progress === 100) {
+                progressBar.classList.add('progress-complete');
+                setTimeout(() => {
+                    progressBar.classList.remove('progress-complete');
+                }, 500);
+            }
+        }
+    }
+
+    // 重置进度条
+    function resetProgress() {
+        const progressBar = document.querySelector('.progress-bar');
+        const progressText = document.querySelector('.progress-text');
+        
+        if (progressBar && progressText) {
+            progressBar.style.width = '0%';
+            progressText.textContent = '翻译进度: 0%';
+            progressBar.classList.remove('progress-complete');
+        }
+    }
+
     // 开始翻译
     async function startTranslation() {
         try {
             showLoading();
+            // 重置进度条和取消标志
+            resetProgress();
             isTranslationCancelled = false;
             
             // 更新当前使用的模型名称
@@ -288,25 +318,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 添加进度更新函数
-    function updateProgress(progress) {
-        const progressBar = document.querySelector('.progress-bar');
-        const progressText = document.querySelector('.progress-text');
-        
-        if (progressBar && progressText) {
-            progressBar.style.width = `${progress}%`;
-            progressText.textContent = `翻译进度: ${progress}%`;
-            
-            // 当进度达到100%时，添加完成动画
-            if (progress === 100) {
-                progressBar.classList.add('progress-complete');
-                setTimeout(() => {
-                    progressBar.classList.remove('progress-complete');
-                }, 500);
-            }
-        }
-    }
-
     // 更新结果表格
     function updateResultTable(translations) {
         const tbody = resultTable.querySelector('tbody');
@@ -329,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const span = document.createElement('span');
                 span.className = 'cell-content';
-                span.textContent = translation[lang] || '';
+                span.textContent = translation.translations[lang] || '';
                 
                 cell.appendChild(span);
                 row.appendChild(cell);

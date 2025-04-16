@@ -1,7 +1,7 @@
 // API配置
 const config = {
     // API基础URL
-    API_BASE_URL: 'https://auto-trans2-backend-git-main-franks-projects-e196e717.vercel.app',
+    API_BASE_URL: 'http://localhost:5000',
     
     // API端点
     ENDPOINTS: {
