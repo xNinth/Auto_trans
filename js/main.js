@@ -206,9 +206,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // 更新进度
             updateProgress((currentRow + 1) / totalRows * 100);
             
+            // 修改这里，正确处理嵌套的translations
             return {
                 description,
-                translations: result
+                translations: result.data.translations
             };
             
         } catch (error) {
