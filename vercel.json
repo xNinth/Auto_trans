@@ -1,0 +1,22 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "wsgi.py",
+            "use": "@vercel/python",
+            "config": {
+                "runtime": "python3.9",
+                "installCommand": "pip install flask==2.2.3 werkzeug==2.2.3 flask-cors==4.0.0 python-dotenv==1.0.1 requests==2.31.0"
+            }
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "wsgi.py"
+        }
+    ],
+    "env": {
+        "PYTHONPATH": "."
+    }
+} 
