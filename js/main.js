@@ -185,31 +185,64 @@ document.addEventListener('DOMContentLoaded', () => {
                 model: selectedModel
             };
             
+            console.log(`[DEBUG] 发送请求: ${JSON.stringify(requestData)}`);
+            
             // 发送请求
             const response = await fetch(`${config.API_BASE_URL}${config.ENDPOINTS.translate}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(requestData)
+                body: JSON.stringify(requestData),
+                // 添加超时控制
+                signal: AbortSignal.timeout(config.TIMEOUT)
             });
+            
+            console.log(`[DEBUG] 收到响应状态: ${response.status}`);
             
             // 检查响应状态
             if (!response.ok) {
-                const errorData = await response.json();
+                const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
             }
             
             // 解析响应数据
-            const result = await response.json();
+            const responseText = await response.text();
+            console.log(`[DEBUG] 响应内容: ${responseText}`);
+            
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (e) {
+                console.error(`[DEBUG] JSON解析错误: ${e.message}`);
+                throw new Error(`无法解析服务器响应: ${e.message}`);
+            }
+            
+            console.log(`[DEBUG] 解析后结果: ${JSON.stringify(result)}`);
+            
+            // 验证结果
+            if (!result || typeof result !== 'object') {
+                throw new Error('服务器返回了无效的结果格式');
+            }
+            
+            // 确保所有必要的语言键存在
+            const requiredLanguages = ['zh_CN', 'en_US', 'AR', 'TR', 'pt_BR', 'es_MX', 'TC'];
+            const missingLanguages = requiredLanguages.filter(lang => !result[lang]);
+            
+            if (missingLanguages.length > 0) {
+                console.warn(`[DEBUG] 缺少语言: ${missingLanguages.join(', ')}`);
+                // 填充缺失的语言，防止渲染错误
+                missingLanguages.forEach(lang => {
+                    result[lang] = `[缺失: ${lang}]`;
+                });
+            }
             
             // 更新进度
             updateProgress((currentRow + 1) / totalRows * 100);
             
-            // 修改这里，正确处理嵌套的translations
             return {
                 description,
-                translations: result.data.translations
+                translations: result
             };
             
         } catch (error) {
@@ -327,12 +360,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // 获取当前排序顺序
         const currentOrder = sortToggle.checked ? languageOrders.backend : languageOrders.normal;
 
-        // 获取输入表格的所有行
-        const inputRows = Array.from(inputTable.querySelectorAll('tbody tr'));
+        console.log(`[DEBUG] 更新表格, 翻译结果数量: ${translations.length}`);
+        console.log(`[DEBUG] 第一个翻译结果: ${JSON.stringify(translations[0])}`);
         
         // 确保翻译结果与输入行一一对应
         translations.forEach((translation, index) => {
             const row = document.createElement('tr');
+            
+            if (!translation.translations) {
+                console.error(`[DEBUG] 翻译结果缺少translations属性: ${JSON.stringify(translation)}`);
+                return; // 跳过这一行
+            }
             
             currentOrder.forEach(lang => {
                 const cell = document.createElement('td');
@@ -341,7 +379,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const span = document.createElement('span');
                 span.className = 'cell-content';
-                span.textContent = translation.translations[lang] || '';
+                
+                // 安全获取翻译文本，防止undefined错误
+                const translatedText = translation.translations[lang] || `[未翻译: ${lang}]`;
+                span.textContent = translatedText;
                 
                 cell.appendChild(span);
                 row.appendChild(cell);
