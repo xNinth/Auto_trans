@@ -179,10 +179,11 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const selectedModel = modelSelect.value;
             
-            // 准备请求数据
+            // 准备请求数据，包含说明字段
             const requestData = {
                 text: originalText,
-                model: selectedModel
+                model: selectedModel,
+                description: description // 添加说明字段
             };
             
             console.log(`[DEBUG] 发送请求:`, requestData);
@@ -329,8 +330,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     break;
                 }
                 
+                // 获取说明和原文内容
                 const description = row.querySelector('.description').value.trim();
                 const originalText = row.querySelector('.original-text').value.trim();
+                
+                console.log(`[翻译日志] 行 ${currentRow + 1}: 原文="${originalText}", 说明="${description}"`);
                 
                 if (!originalText) {
                     console.log(`[翻译日志] 跳过空行: ${currentRow + 1}`);
@@ -339,6 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 try {
+                    // 传递说明和原文到翻译函数
                     const result = await translateText(description, originalText, currentRow, totalRows);
                     translations.push(result);
                     console.log(`[翻译日志] 行 ${currentRow + 1} 翻译成功`);
