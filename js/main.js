@@ -186,7 +186,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 description: description // 添加说明字段
             };
             
-            console.log(`[DEBUG] 发送请求:`, requestData);
+            console.log(`[DEBUG] 发送请求详情:`);
+            console.log(`- 模型: ${selectedModel}`);
+            console.log(`- 原文: "${originalText}"`);
+            console.log(`- 说明: "${description}"`);
+            console.log(`- URL: ${config.API_BASE_URL}${config.ENDPOINTS.translate}`);
             
             // 发送请求
             const response = await fetch(`${config.API_BASE_URL}${config.ENDPOINTS.translate}`, {
@@ -207,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 解析响应数据
             const responseText = await response.text();
-            console.log(`[DEBUG] 响应内容:`, responseText);
+            console.log(`[DEBUG] 响应内容长度: ${responseText.length} 字符`);
             
             let result;
             try {
@@ -217,7 +221,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(`无法解析服务器响应: ${e.message}`);
             }
             
-            console.log(`[DEBUG] 解析后结果:`, result);
+            // 缩短日志输出，只显示关键内容
+            if (result && result.data) {
+                console.log(`[DEBUG] 解析后结果包含data字段:`, {
+                    success: result.success,
+                    timestamp: result.timestamp,
+                    data: {
+                        model: result.data.model,
+                        process_time: result.data.process_time,
+                        translations: Object.keys(result.data.translations || {}).length + " 种语言"
+                    }
+                });
+            } else {
+                console.log(`[DEBUG] 解析后结果结构:`, result ? Object.keys(result) : null);
+            }
             
             // 提取正确的翻译数据
             let translations;
@@ -236,6 +253,12 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 console.error(`[DEBUG] 无法识别的响应格式`, result);
                 throw new Error('服务器返回了无法识别的数据格式');
+            }
+            
+            // 显示英文翻译结果，确认说明是否生效
+            if (translations.en_US) {
+                console.log(`[DEBUG] 英文翻译结果: "${translations.en_US}"`);
+                console.log(`[DEBUG] 原文: "${originalText}", 说明: "${description}"`);
             }
             
             // 确保所有必要的语言键存在
@@ -334,7 +357,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const description = row.querySelector('.description').value.trim();
                 const originalText = row.querySelector('.original-text').value.trim();
                 
-                console.log(`[翻译日志] 行 ${currentRow + 1}: 原文="${originalText}", 说明="${description}"`);
+                // 记录行数据和说明内容
+                console.log(`[翻译日志] 行 ${currentRow + 1}:`);
+                console.log(`- 原文: "${originalText}"`);
+                console.log(`- 说明: "${description}"`);
                 
                 if (!originalText) {
                     console.log(`[翻译日志] 跳过空行: ${currentRow + 1}`);
@@ -344,6 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 try {
                     // 传递说明和原文到翻译函数
+                    console.log(`[翻译日志] 发送翻译请求，行 ${currentRow + 1}, 说明长度: ${description.length}`);
                     const result = await translateText(description, originalText, currentRow, totalRows);
                     translations.push(result);
                     console.log(`[翻译日志] 行 ${currentRow + 1} 翻译成功`);
