@@ -185,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 model: selectedModel
             };
             
-            console.log(`[DEBUG] 发送请求: ${JSON.stringify(requestData)}`);
+            console.log(`[DEBUG] 发送请求:`, requestData);
             
             // 发送请求
             const response = await fetch(`${config.API_BASE_URL}${config.ENDPOINTS.translate}`, {
@@ -194,13 +194,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(requestData),
-                // 添加超时控制
                 signal: AbortSignal.timeout(config.TIMEOUT)
             });
             
             console.log(`[DEBUG] 收到响应状态: ${response.status}`);
             
-            // 检查响应状态
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
@@ -208,32 +206,46 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 解析响应数据
             const responseText = await response.text();
-            console.log(`[DEBUG] 响应内容: ${responseText}`);
+            console.log(`[DEBUG] 响应内容:`, responseText);
             
             let result;
             try {
                 result = JSON.parse(responseText);
             } catch (e) {
-                console.error(`[DEBUG] JSON解析错误: ${e.message}`);
+                console.error(`[DEBUG] JSON解析错误:`, e);
                 throw new Error(`无法解析服务器响应: ${e.message}`);
             }
             
-            console.log(`[DEBUG] 解析后结果: ${JSON.stringify(result)}`);
+            console.log(`[DEBUG] 解析后结果:`, result);
             
-            // 验证结果
-            if (!result || typeof result !== 'object') {
-                throw new Error('服务器返回了无效的结果格式');
+            // 提取正确的翻译数据
+            let translations;
+            if (result.data && result.data.translations) {
+                // 处理嵌套的data结构
+                console.log(`[DEBUG] 检测到嵌套的data结构`);
+                translations = result.data.translations;
+            } else if (result.translations) {
+                // 处理包含translations字段的结构
+                console.log(`[DEBUG] 检测到直接的translations结构`);
+                translations = result.translations;
+            } else if (typeof result === 'object' && result.zh_CN) {
+                // 处理直接返回翻译对象的情况
+                console.log(`[DEBUG] 检测到直接的翻译对象`);
+                translations = result;
+            } else {
+                console.error(`[DEBUG] 无法识别的响应格式`, result);
+                throw new Error('服务器返回了无法识别的数据格式');
             }
             
             // 确保所有必要的语言键存在
             const requiredLanguages = ['zh_CN', 'en_US', 'AR', 'TR', 'pt_BR', 'es_MX', 'TC'];
-            const missingLanguages = requiredLanguages.filter(lang => !result[lang]);
+            const missingLanguages = requiredLanguages.filter(lang => !translations[lang]);
             
             if (missingLanguages.length > 0) {
-                console.warn(`[DEBUG] 缺少语言: ${missingLanguages.join(', ')}`);
+                console.warn(`[DEBUG] 缺少语言:`, missingLanguages);
                 // 填充缺失的语言，防止渲染错误
                 missingLanguages.forEach(lang => {
-                    result[lang] = `[缺失: ${lang}]`;
+                    translations[lang] = `[缺失: ${lang}]`;
                 });
             }
             
@@ -242,11 +254,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             return {
                 description,
-                translations: result
+                translations: translations
             };
             
         } catch (error) {
-            console.error('翻译错误:', error);
+            console.error('[翻译错误]:', error);
             showToast(`翻译失败: ${error.message}`, 'error');
             throw error;
         }
@@ -361,17 +373,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentOrder = sortToggle.checked ? languageOrders.backend : languageOrders.normal;
 
         console.log(`[DEBUG] 更新表格, 翻译结果数量: ${translations.length}`);
-        console.log(`[DEBUG] 第一个翻译结果: ${JSON.stringify(translations[0])}`);
+        
+        if (translations.length > 0) {
+            console.log(`[DEBUG] 第一个翻译结果:`, translations[0]);
+        }
         
         // 确保翻译结果与输入行一一对应
-        translations.forEach((translation, index) => {
+        translations.forEach((item, index) => {
             const row = document.createElement('tr');
             
-            if (!translation.translations) {
-                console.error(`[DEBUG] 翻译结果缺少translations属性: ${JSON.stringify(translation)}`);
+            // 检查翻译结果格式
+            if (!item || !item.translations) {
+                console.error(`[DEBUG] 翻译结果格式错误:`, item);
                 return; // 跳过这一行
             }
             
+            // 遍历语言创建单元格
             currentOrder.forEach(lang => {
                 const cell = document.createElement('td');
                 cell.className = 'selectable';
@@ -380,8 +397,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const span = document.createElement('span');
                 span.className = 'cell-content';
                 
-                // 安全获取翻译文本，防止undefined错误
-                const translatedText = translation.translations[lang] || `[未翻译: ${lang}]`;
+                // 安全获取翻译文本
+                const translatedText = item.translations[lang] || `[未翻译: ${lang}]`;
                 span.textContent = translatedText;
                 
                 cell.appendChild(span);
