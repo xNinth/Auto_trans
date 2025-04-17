@@ -186,7 +186,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 description: description // 添加说明字段
             };
             
-            console.log(`[DEBUG] 发送请求:`, requestData);
+            console.log(`[DEBUG] 行 ${currentRow + 1} 发送请求:`, 
+                        `原文="${originalText}"`, 
+                        `说明="${description}"`);
             
             // 发送请求
             const response = await fetch(`${config.API_BASE_URL}${config.ENDPOINTS.translate}`, {
@@ -198,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 signal: AbortSignal.timeout(config.TIMEOUT)
             });
             
-            console.log(`[DEBUG] 收到响应状态: ${response.status}`);
+            console.log(`[DEBUG] 行 ${currentRow + 1} 收到响应状态: ${response.status}`);
             
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
@@ -207,34 +209,32 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 解析响应数据
             const responseText = await response.text();
-            console.log(`[DEBUG] 响应内容:`, responseText);
+            console.log(`[DEBUG] 行 ${currentRow + 1} 响应内容:`, responseText.substring(0, 150) + '...');
             
             let result;
             try {
                 result = JSON.parse(responseText);
             } catch (e) {
-                console.error(`[DEBUG] JSON解析错误:`, e);
+                console.error(`[DEBUG] 行 ${currentRow + 1} JSON解析错误:`, e);
                 throw new Error(`无法解析服务器响应: ${e.message}`);
             }
-            
-            console.log(`[DEBUG] 解析后结果:`, result);
             
             // 提取正确的翻译数据
             let translations;
             if (result.data && result.data.translations) {
                 // 处理嵌套的data结构
-                console.log(`[DEBUG] 检测到嵌套的data结构`);
+                console.log(`[DEBUG] 行 ${currentRow + 1} 检测到嵌套的data结构`);
                 translations = result.data.translations;
             } else if (result.translations) {
                 // 处理包含translations字段的结构
-                console.log(`[DEBUG] 检测到直接的translations结构`);
+                console.log(`[DEBUG] 行 ${currentRow + 1} 检测到直接的translations结构`);
                 translations = result.translations;
             } else if (typeof result === 'object' && result.zh_CN) {
                 // 处理直接返回翻译对象的情况
-                console.log(`[DEBUG] 检测到直接的翻译对象`);
+                console.log(`[DEBUG] 行 ${currentRow + 1} 检测到直接的翻译对象`);
                 translations = result;
             } else {
-                console.error(`[DEBUG] 无法识别的响应格式`, result);
+                console.error(`[DEBUG] 行 ${currentRow + 1} 无法识别的响应格式`, result);
                 throw new Error('服务器返回了无法识别的数据格式');
             }
             
@@ -243,12 +243,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const missingLanguages = requiredLanguages.filter(lang => !translations[lang]);
             
             if (missingLanguages.length > 0) {
-                console.warn(`[DEBUG] 缺少语言:`, missingLanguages);
+                console.warn(`[DEBUG] 行 ${currentRow + 1} 缺少语言:`, missingLanguages);
                 // 填充缺失的语言，防止渲染错误
                 missingLanguages.forEach(lang => {
                     translations[lang] = `[缺失: ${lang}]`;
                 });
             }
+            
+            // 记录翻译结果，重点检查说明是否起作用
+            console.log(`[翻译结果] 行 ${currentRow + 1}:`, 
+                         `原文="${originalText}"`, 
+                         `说明="${description}"`, 
+                         `英文翻译="${translations.en_US}"`);
             
             // 更新进度
             updateProgress((currentRow + 1) / totalRows * 100);
@@ -259,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             
         } catch (error) {
-            console.error('[翻译错误]:', error);
+            console.error(`[翻译错误] 行 ${currentRow + 1}:`, error);
             showToast(`翻译失败: ${error.message}`, 'error');
             throw error;
         }

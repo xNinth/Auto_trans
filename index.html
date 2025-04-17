@@ -39,19 +39,28 @@
                         </div>
                     </div>
                     <div class="card-body">
+                        <div class="alert alert-info small" role="alert">
+                            <i class="bi bi-info-circle"></i> <strong>说明用法</strong>：<br>
+                            "说明"栏用于提供语境和含义提示，帮助AI更准确翻译。例如：<br>
+                            - 若原文是"日"，说明写"一天两天的意思，复数"，翻译将是"days"<br>
+                            - 若原文是"钻石"，说明写"单数"，翻译将是"diamond"
+                        </div>
                         <div class="table-responsive">
                             <table class="table" id="inputTable">
                                 <thead>
                                     <tr>
-                                        <th>说明</th>
-                                        <th>原文</th>
-                                        <th>操作</th>
+                                        <th style="width:20%">
+                                            <span class="th-title">说明</span>
+                                            <small class="d-block text-white-50">(提供上下文)</small>
+                                        </th>
+                                        <th style="width:65%">原文</th>
+                                        <th style="width:15%">操作</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
                                         <td>
-                                            <textarea class="form-control description" rows="2" placeholder="请输入说明..."></textarea>
+                                            <textarea class="form-control description" rows="2" placeholder="请输入上下文说明..."></textarea>
                                         </td>
                                         <td>
                                             <textarea class="form-control original-text" rows="2" placeholder="请输入原文..."></textarea>
